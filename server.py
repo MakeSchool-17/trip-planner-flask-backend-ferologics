@@ -12,33 +12,77 @@ api = Api(app)
 
 
 # Implement REST Resource
-class MyObject(Resource):
+class Users(Resource):
 
     def post(self):
-        new_myobject = request.json
+        new_user = request.json
 
-        myobject_collection = app.db.myobjects
+        user_collection = app.db.users
 
-        result = myobject_collection.insert_one(new_myobject)
+        result = user_collection.insert_one(new_user)
 
-        myobject = myobject_collection.find_one({"_id": ObjectId(result.inserted_id)})
+        user = user_collection.find_one({"_id": ObjectId(result.inserted_id)})
 
-        return myobject
+        return user
 
-    def get(self, myobject_id):
-        myobject_collection = app.db.myobjects
-        myobject = myobject_collection.find_one({"_id": ObjectId(myobject_id)})
+    def get(self, user_id):
+        user_collection = app.db.users
+        user = user_collection.find_one({"_id": ObjectId(user_id)})
 
-        if myobject is None:
+        if user is None:
             response = jsonify(data=[])
             response.status_code = 404
             return response
         else:
-            return myobject
+            return user
 
+    def delte(self, user_id):
+        ...
+
+    def put(self, user_id):
+        ...
 
 # Add REST resource to API
-api.add_resource(MyObject, '/myobject/', '/myobject/<string:myobject_id>')
+api.add_resource(Users, '/users/', '/users/<string:user_id>')
+
+
+# Implement REST Resource
+class Trips(Resource):
+
+    def post(self):
+        new_trip = request.json
+
+        trip_collection = app.db.trips
+
+        result = trip_collection.insert_one(new_trip)
+
+        trip = trip_collection.find_one({"_id": ObjectId(result.inserted_id)})
+
+        return trip
+
+    def get(self, trip_id):
+        trip_collection = app.db.trips
+        trip = trip_collection.find_one({"_id": ObjectId(trip_id)})
+
+        if trip is None:
+            response = jsonify(data=[])
+            response.status_code = 404
+            return response
+        else:
+            return trip
+
+    def delte(self, trip_id):
+        trip = self.get(trip_id)
+        trip_collection = app.db.trips
+        trip_collection.remove({trip})
+
+        return trip.trip_id
+
+    def put(self, trip_id):
+        ...
+
+# Add REST resource to API
+api.add_resource(Trips, '/trips/', '/trips/<string:trip_id>')
 
 
 # provide a custom JSON serializer for flaks_restful

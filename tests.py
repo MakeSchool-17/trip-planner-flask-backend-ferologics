@@ -17,34 +17,60 @@ class FlaskrTestCase(unittest.TestCase):
         server.app.db = db
 
         # Drop collection (significantly faster than dropping entire db)
-        db.drop_collection('myobjects')
+        db.drop_collection('trips')
+        db.drop_collection('users')
 
-        # MyObject tests
+    # TRIPS TESTS
+    def test_posting_trip(self):
+        response = self.app.post('/trips/', data=json.dumps(dict(name="A trip")), content_type='application/json')
 
-        def test_posting_myobject(self):
-            response = self.app.post('/myobject/', data=json.dumps(dict(name="A object")), content_type='application/json')
+        responseJSON = json.loads(response.data.decode())
 
-            responseJSON = json.loads(response.data.decode())
+        self.assertEqual(response.status_code, 200)
+        assert 'application/json' in response.content_type
+        assert 'A trip' in responseJSON["name"]
 
-            self.assertEqual(response.status_code, 200)
-            assert 'application/json' in response.content_type
-            assert 'A object' in responseJSON["name"]
+    def test_getting_trip(self):
+        response = self.app.post('/trips/', data=json.dumps(dict(name="Another trip")), content_type='application/json')
 
-        def test_getting_object(self):
-            response = self.app.post('/myobject/', data=json.dumps(dict(name="Another object")), content_type='application/json')
+        postResponseJSON = json.loads(response.data.decode())
+        postedObjectID = postResponseJSON["_id"]
 
-            postResponseJSON = json.loads(response.data.decode())
-            postedObjectID = postResponseJSON["_id"]
+        response = self.app.get('/trips/' + postedObjectID)
+        responseJSON = json.loads(response.data.decode())
 
-            response = self.app.get('/myobject/' + postedObjectID)
-            responseJSON = json.loads(response.data.decode())
+        self.assertEqual(response.status_code, 200)
+        assert 'Another trip' in responseJSON["name"]
 
-            self.assertEqual(response.status_code, 200)
-            assert 'Another object' in responseJSON["name"]
+    def test_getting_non_existent_trip(self):
+        response = self.app.get('/trips/55f0cbb4236f44b7f0e3cb23')
+        self.assertEqual(response.status_code, 404)
 
-        def test_getting_non_existent_object(self):
-            response = self.app.get('/myobject/55f0cbb4236f44b7f0e3cb23')
-            self.assertEqual(response.status_code, 404)
+    # USER TESTS
+    def test_posting_user(self):
+        response = self.app.post('/users/', data=json.dumps(dict(name="A user")), content_type='application/json')
+
+        responseJSON = json.loads(response.data.decode())
+
+        self.assertEqual(response.status_code, 200)
+        assert 'application/json' in response.content_type
+        assert 'A user' in responseJSON["name"]
+
+    def test_getting_user(self):
+        response = self.app.post('/users/', data=json.dumps(dict(name="Another user")), content_type='application/json')
+
+        postResponseJSON = json.loads(response.data.decode())
+        postedObjectID = postResponseJSON["_id"]
+
+        response = self.app.get('/users/' + postedObjectID)
+        responseJSON = json.loads(response.data.decode())
+
+        self.assertEqual(response.status_code, 200)
+        assert 'Another user' in responseJSON["name"]
+
+    def test_getting_non_existent_user(self):
+        response = self.app.get('/users/55f0cbb4236f44b7f0e3cb23')
+        self.assertEqual(response.status_code, 404)
 
 if __name__ == '__main__':
     unittest.main()
