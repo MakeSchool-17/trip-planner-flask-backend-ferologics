@@ -16,8 +16,10 @@ class MyObject(Resource):
 
     def post(self):
         new_myobject = request.json
+
         myobject_collection = app.db.myobjects
-        result = myobject_collection.insert_one(request.json)
+
+        result = myobject_collection.insert_one(new_myobject)
 
         myobject = myobject_collection.find_one({"_id": ObjectId(result.inserted_id)})
 
