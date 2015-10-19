@@ -30,6 +30,15 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'application/json' in response.content_type
         assert 'A trip' in responseJSON["name"]
 
+    def test_updating_trip(self):
+        response = self.app.post("/trips/", data=json.dumps(dict(name="A trip", data=[])), content_type="application/json")
+
+        postedResponseJSON = json.loads(response.data.decode())
+        postedObjectID = postedResponseJSON["_id"]
+
+        response = self.app.put("/trips/" + postedObjectID)
+        self.assertEqual(response.status_code, 200)
+
     def test_getting_trip(self):
         response = self.app.post('/trips/', data=json.dumps(dict(name="Another trip")), content_type='application/json')
 
@@ -42,9 +51,21 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         assert 'Another trip' in responseJSON["name"]
 
+    def test_deleting_trip(self):
+        response = self.app.post('/trips/', data=json.dumps(dict(name="Another trip")), content_type='application/json')
+
+        postResponseJSON = json.loads(response.data.decode())
+        postedObjectID = postResponseJSON["_id"]
+
+        response = self.app.delete('/trips/' + postedObjectID)
+
+        self.assertEqual(response.status_code, 200)
+
     def test_getting_non_existent_trip(self):
         response = self.app.get('/trips/55f0cbb4236f44b7f0e3cb23')
         self.assertEqual(response.status_code, 404)
+
+# =====================================================================================================================
 
     # USER TESTS
     def test_posting_user(self):
@@ -55,6 +76,20 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         assert 'application/json' in response.content_type
         assert 'A user' in responseJSON["name"]
+
+    def test_updating_user(self):
+        response = self.app.post("/users/", data=json.dumps(dict(name="A user", data=[])), content_type="application/json")
+
+        postedResponseJSON = json.loads(response.data.decode())
+        postedObjectID = postedResponseJSON["_id"]
+
+        response = self.app.put("/users/" + postedObjectID,
+                data=json.dumps(dict(
+                    name="A different user",
+                    data="Hue hue"
+                )),
+                content_type="application/json")
+        self.assertEqual(response.status_code, 200)
 
     def test_getting_user(self):
         response = self.app.post('/users/', data=json.dumps(dict(name="Another user")), content_type='application/json')

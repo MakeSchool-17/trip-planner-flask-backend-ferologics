@@ -16,12 +16,10 @@ class Users(Resource):
 
     def post(self):
         new_user = request.json
-
         user_collection = app.db.users
 
         result = user_collection.insert_one(new_user)
-
-        user = user_collection.find_one({"_id": ObjectId(result.inserted_id)})
+        user = self.get(result.inserted_id)
 
         return user
 
@@ -36,11 +34,19 @@ class Users(Resource):
         else:
             return user
 
-    def delte(self, user_id):
-        ...
-
     def put(self, user_id):
-        ...
+        new_data = request.json
+
+        user_collection = app.db.users
+        result = user_collection.update_one({"_id": ObjectId(user_id)}, {"$set": {"data": new_data}})
+
+        response = jsonify(data=[])
+        if result.modified_count == 0:
+            response.status_code = 404
+            return response
+        else:
+            response.status_code = 200
+            return response
 
 # Add REST resource to API
 api.add_resource(Users, '/users/', '/users/<string:user_id>')
@@ -51,14 +57,17 @@ class Trips(Resource):
 
     def post(self):
         new_trip = request.json
-
         trip_collection = app.db.trips
 
         result = trip_collection.insert_one(new_trip)
-
         trip = trip_collection.find_one({"_id": ObjectId(result.inserted_id)})
 
-        return trip
+        if trip is None:
+            response = jsonify(data=[])
+            response.status_code = 404
+            return response
+        else:
+            return trip
 
     def get(self, trip_id):
         trip_collection = app.db.trips
@@ -71,15 +80,31 @@ class Trips(Resource):
         else:
             return trip
 
-    def delte(self, trip_id):
-        trip = self.get(trip_id)
+    def delete(self, trip_id):
         trip_collection = app.db.trips
-        trip_collection.remove({trip})
+        result = trip_collection.delete_one({"_id": ObjectId(trip_id)})
 
-        return trip.trip_id
+        response = jsonify(data=[])
+        if result.deleted_count == 0:
+            response.status_code = 404
+            return response
+        else:
+            response.status_code = 200
+            return response
 
     def put(self, trip_id):
-        ...
+        new_data = request.json
+
+        trip_collection = app.db.trips
+        result = trip_collection.update_one({"_id": ObjectId(trip_id)}, {"$set": {"data": new_data}})
+
+        response = jsonify(data=[])
+        if result.modified_count == 0:
+            response.status_code = 404
+            return response
+        else:
+            response.status_code = 200
+            return response
 
 # Add REST resource to API
 api.add_resource(Trips, '/trips/', '/trips/<string:trip_id>')
