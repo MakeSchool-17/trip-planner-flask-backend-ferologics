@@ -3,6 +3,7 @@ from flask_restful import Resource, Api
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from utils.mongo_json_encoder import JSONEncoder
+import bcrypt
 
 # Basic Setup
 app = Flask(__name__)
@@ -15,12 +16,23 @@ api = Api(app)
 class Users(Resource):
 
     def post(self):
+        # new user JSON request in form [username:str, password:str]
         new_user = request.json
         user_collection = app.db.users
 
-        result = user_collection.insert_one(new_user)
-        user = self.get(result.inserted_id)
+        # encrypt the password
+        password = new_user["password"].encode("utf-8")
+        # hash pw
+        hashed = bcrypt.hashpw(password, bcrypt.gensalt(13))
+        # check for validity
+        if bcrypt.hashpw(password, hashed) == hashed:
+            # store along with the user name
+            user_collection.insert_one(new_user)
+        else:
+            # handle error
+            print("Not matching")
 
+        user = self.get(result.inserted_id)
         return user
 
     def get(self, user_id):
@@ -50,7 +62,6 @@ class Users(Resource):
 
 # Add REST resource to API
 api.add_resource(Users, '/users/', '/users/<string:user_id>')
-
 
 # Implement REST Resource
 class Trips(Resource):
