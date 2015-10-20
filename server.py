@@ -1,8 +1,9 @@
-from flask import Flask, request, make_response, jsonify
+from flask import Flask, request, Response, make_response, jsonify
 from flask_restful import Resource, Api
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from utils.mongo_json_encoder import JSONEncoder
+from functools import wraps
 import bcrypt
 
 # Basic Setup
@@ -10,11 +11,27 @@ app = Flask(__name__)
 mongo = MongoClient('localhost', 27017)
 app.db = mongo.develop_database
 api = Api(app)
+app.bcrypt_rounds = 8
 
+def check_auth(username, password):
+    return username == "admin" and password == "secret"
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            message = {"error": "Basic Auth Required."}
+            response = jsonify(message)
+            response.status_code = 401
+            return response
+        return f(*args, **kwargs)
+    return decorated
 
 # Implement REST Resource
 class Users(Resource):
 
+    @requires_auth
     def post(self):
         # new user JSON request in form [username:str, password:str]
         new_user = request.json
@@ -23,11 +40,11 @@ class Users(Resource):
         # encrypt the password
         password = new_user["password"].encode("utf-8")
         # hash pw
-        hashed = bcrypt.hashpw(password, bcrypt.gensalt(13))
+        hashed = bcrypt.hashpw(password, bcrypt.gensalt(app.bcrypt_rounds))
         # check for validity
         if bcrypt.hashpw(password, hashed) == hashed:
             # store along with the user name
-            user_collection.insert_one(new_user)
+            result = user_collection.insert_one(new_user)
         else:
             # handle error
             print("Not matching")
@@ -35,6 +52,7 @@ class Users(Resource):
         user = self.get(result.inserted_id)
         return user
 
+    @requires_auth
     def get(self, user_id):
         user_collection = app.db.users
         user = user_collection.find_one({"_id": ObjectId(user_id)})
@@ -46,6 +64,7 @@ class Users(Resource):
         else:
             return user
 
+    @requires_auth
     def put(self, user_id):
         new_data = request.json
 
@@ -66,6 +85,7 @@ api.add_resource(Users, '/users/', '/users/<string:user_id>')
 # Implement REST Resource
 class Trips(Resource):
 
+    @requires_auth
     def post(self):
         new_trip = request.json
         trip_collection = app.db.trips
@@ -80,6 +100,7 @@ class Trips(Resource):
         else:
             return trip
 
+    @requires_auth
     def get(self, trip_id):
         trip_collection = app.db.trips
         trip = trip_collection.find_one({"_id": ObjectId(trip_id)})
@@ -91,6 +112,7 @@ class Trips(Resource):
         else:
             return trip
 
+    @requires_auth
     def delete(self, trip_id):
         trip_collection = app.db.trips
         result = trip_collection.delete_one({"_id": ObjectId(trip_id)})
@@ -103,6 +125,7 @@ class Trips(Resource):
             response.status_code = 200
             return response
 
+    @requires_auth
     def put(self, trip_id):
         new_data = request.json
 
@@ -121,7 +144,7 @@ class Trips(Resource):
 api.add_resource(Trips, '/trips/', '/trips/<string:trip_id>')
 
 
-# provide a custom JSON serializer for flaks_restful
+# provide a custom JSON serializer for flask_restful
 @api.representation('application/json')
 def output_json(data, code, headers=None):
     resp = make_response(JSONEncoder().encode(data), code)
