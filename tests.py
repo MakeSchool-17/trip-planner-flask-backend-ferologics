@@ -32,8 +32,9 @@ class FlaskrTestCase(unittest.TestCase):
                                 data=json.dumps(
                                     dict(
                                         name="A trip",
-                                        data=[])),
-                                        headers=self.auth,
+                                        waypoints=[]
+                                        )),
+                                headers=self.auth,
                                 content_type='application/json')
 
         responseJSON = json.loads(response.data.decode())
@@ -47,8 +48,9 @@ class FlaskrTestCase(unittest.TestCase):
                                 data=json.dumps(
                                     dict(
                                         name="A trip",
-                                        data=[])),
-                                        headers=self.auth,
+                                        waypoints=[]
+                                        )),
+                                headers=self.auth,
                                 content_type="application/json")
 
         postedResponseJSON = json.loads(response.data.decode())
@@ -58,8 +60,14 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_getting_trip(self):
-        response = self.app.post('/trips/', data=json.dumps(dict(name="Another trip")),
-        headers=self.auth, content_type='application/json')
+        response = self.app.post('/trips/',
+                                data=json.dumps(
+                                    dict(
+                                        name="Another trip",
+                                        waypoints=[]
+                                        )),
+                                headers=self.auth,
+                                content_type='application/json')
 
         postResponseJSON = json.loads(response.data.decode())
         postedObjectID = postResponseJSON["_id"]
@@ -71,8 +79,14 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'Another trip' in responseJSON["name"]
 
     def test_deleting_trip(self):
-        response = self.app.post('/trips/', data=json.dumps(dict(name="Another trip")),
-        headers=self.auth, content_type='application/json')
+        response = self.app.post('/trips/',
+                                data=json.dumps(
+                                    dict(
+                                        name="Another trip",
+                                        waypoints=[]
+                                        )),
+                                headers=self.auth,
+                                content_type='application/json')
 
         postResponseJSON = json.loads(response.data.decode())
         postedObjectID = postResponseJSON["_id"]
@@ -89,8 +103,14 @@ class FlaskrTestCase(unittest.TestCase):
 # =====================================================================================================================
     # USER TESTS
     def test_posting_user(self):
-        response = self.app.post('/users/', data=json.dumps(dict(username="A user", password="fukayoo")),
-        headers=self.auth, content_type='application/json')
+        response = self.app.post('/users/',
+                                data=json.dumps(
+                                    dict(
+                                        username="A user",
+                                        password="fukayoo"
+                                        )),
+                                headers=self.auth,
+                                content_type='application/json')
 
         responseJSON = json.loads(response.data.decode())
 
@@ -99,8 +119,14 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'fukayoo' in responseJSON["password"]
 
     def test_updating_user(self):
-        response = self.app.post("/users/", data=json.dumps(dict(username="A user", password="fukayoo")),
-        headers=self.auth, content_type="application/json")
+        response = self.app.post("/users/",
+                                data=json.dumps(
+                                    dict(
+                                        username="A user",
+                                        password="fukayoo"
+                                        )),
+                                headers=self.auth,
+                                content_type="application/json")
 
         postedResponseJSON = json.loads(response.data.decode())
         postedObjectID = postedResponseJSON["_id"]
@@ -109,15 +135,22 @@ class FlaskrTestCase(unittest.TestCase):
                                 data=json.dumps(
                                     dict(
                                         username="A different user",
-                                        password="fukayoo")),
+                                        password="fukayoo"
+                                        )),
                                 headers=self.auth,
                                 content_type="application/json")
 
         self.assertEqual(response.status_code, 200)
 
     def test_getting_user(self):
-        response = self.app.post('/users/', data=json.dumps(dict(username="A user", password="fukayoo")),
-        headers=self.auth, content_type='application/json')
+        response = self.app.post('/users/',
+                                data=json.dumps(
+                                    dict(
+                                        username="A user",
+                                        password="fukayoo"
+                                        )),
+                                headers=self.auth,
+                                content_type='application/json')
 
         postResponseJSON = json.loads(response.data.decode())
         postedObjectID = postResponseJSON["_id"]
