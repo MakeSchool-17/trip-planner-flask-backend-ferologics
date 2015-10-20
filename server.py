@@ -14,6 +14,19 @@ api = Api(app)
 app.bcrypt_rounds = 8
 
 def check_auth(username, password):
+
+    user_collection = app.db.users
+    print(user_collection.list)
+    print(username, password)
+
+    # look for the username in the database
+
+        # user = user_collection.find_one({"_id": ObjectId(user_id)})
+
+    # hash auth password
+
+    # check matching passwords
+
     return username == "admin" and password == "secret"
 
 def requires_auth(f):
@@ -31,7 +44,7 @@ def requires_auth(f):
 # Implement REST Resource
 class Users(Resource):
 
-    @requires_auth
+    # @requires_auth
     def post(self):
         # new user JSON request in form [username:str, password:str]
         new_user = request.json
