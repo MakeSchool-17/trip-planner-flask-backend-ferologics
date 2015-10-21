@@ -9,13 +9,6 @@ class FlaskrTestCase(unittest.TestCase):
 
     def setUp(self):
         self.app = server.app.test_client()
-        # Run app in testing mode to retrieve exceptions and stack traces
-        server.app.config['TESTING'] = True
-
-        # setup authorization credentials
-        credentials = "admin:secret"
-        cred_encoded = base64.b64encode(credentials.encode('utf-8'))
-        self.auth = {"Authorization" : "Basic " + cred_encoded.decode('utf-8')}
 
         # Inject test database into application
         mongo = MongoClient('localhost', 27017)
@@ -23,168 +16,166 @@ class FlaskrTestCase(unittest.TestCase):
         server.app.db = db
 
         # Drop collection (significantly faster than dropping entire db)
-        db.drop_collection('trips')
-        db.drop_collection('users')
+        db.drop_collection("users")
+        db.drop_collection("trips")
 
-# =====================================================================================================================
+        # setup authorization credentials
+        self.username = "A user"
+        self.credentials = "A user:fukayoo"
+        self.cred_encoded = base64.b64encode(self.credentials.encode('utf-8'))
+        self.auth = {"Authorization" : "Basic " + self.cred_encoded.decode('utf-8')}
+
+        # register user and get response to use in test functions
+        self.post_user_response = self.app.post('/users/',
+                                                data=json.dumps(
+                                                    dict(
+                                                        username="A user",
+                                                        password="fukayoo"
+                                                        )),
+                                                content_type='application/json')
+
+        # post a new trip to be used in test functions
+        self.post_trip_response = self.app.post('/trips/',
+                                            data=json.dumps(
+                                                dict(
+                                                    name="A trip",
+                                                    waypoints=[],
+                                                    user=self.username
+                                                )),
+                                            headers=self.auth,
+                                            content_type='application/json')
+
+        # Run app in testing mode to retrieve exceptions and stack traces
+        server.app.config['TESTING'] = True
+
+    @classmethod
+    def tearDownClass(cls):
+        ...
+
+# «««««««««««««««««««««««««««««««««««««««««««««««««««««««»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
                                             # USER TESTS
-# =====================================================================================================================
+# «««««««««««««««««««««««««««««««««««««««««««««««««««««««»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 
     # POSTING
     def test_posting_user(self):
-        response = self.app.post('/users/',
-                                data=json.dumps(
-                                    dict(
-                                        username="A user",
-                                        password="fukayoo"
-                                        )),
-                                headers=self.auth,
-                                content_type='application/json')
+        self.post_user_response = self.app.post('/users/',
+                                                data=json.dumps(
+                                                    dict(
+                                                        username="A user",
+                                                        password="fukayoo"
+                                                        )),
+                                                content_type='application/json')
 
-        responseJSON = json.loads(response.data.decode())
+        responseJSON = json.loads(self.post_user_response.data.decode())
 
-        assert 'application/json' in response.content_type
+        assert 'application/json' in self.post_user_response.content_type
         assert 'A user' in responseJSON["username"]
-        assert 'fukayoo' in responseJSON["password"]
 
     # UPDATING
     def test_updating_user(self):
-        response = self.app.post("/users/",
-                                data=json.dumps(
-                                    dict(
-                                        username="A user",
-                                        password="fukayoo"
-                                        )),
-                                headers=self.auth,
-                                content_type="application/json")
 
-        postedResponseJSON = json.loads(response.data.decode())
+        postedResponseJSON = json.loads(self.post_user_response.data.decode())
         postedObjectID = postedResponseJSON["_id"]
 
         # update the posted user with a new name
-        response = self.app.put("/users/" + postedObjectID,
-                                data=json.dumps(
-                                    dict(
-                                        username="A different user",
-                                        password="fukayoo"
-                                        )),
-                                headers=self.auth,
-                                content_type="application/json")
+        put_response = self.app.put("/users/" + postedObjectID,
+                                    data=json.dumps(
+                                        dict(
+                                            username="A different user",
+                                            password="fukayoo"
+                                            )),
+                                    headers=self.auth,
+                                    content_type="application/json")
 
         # run assertions to test status code
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(put_response.status_code, 200)
 
     # GETTING
     def test_getting_user(self):
-        # post user object with username and password --> get response
-        response = self.app.post('/users/',
-                                data=json.dumps(
-                                    dict(
-                                        username="A user",
-                                        password="fukayoo"
-                                        )),
-                                headers=self.auth,
-                                content_type='application/json')
-
         # process the response
-        postResponseJSON = json.loads(response.data.decode())
+        postResponseJSON = json.loads(self.post_user_response.data.decode())
         postedObjectID = postResponseJSON["_id"]
 
         # get the posted user
-        response = self.app.get('/users/' + postedObjectID, headers=self.auth)
-        responseJSON = json.loads(response.data.decode())
+        get_user_response = self.app.get('/users/' + postedObjectID, headers=self.auth)
+        responseJSON = json.loads(get_user_response.data.decode())
 
         # run assertions to test for validity
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(get_user_response.status_code, 200)
         assert 'A user' in responseJSON["username"]
 
     # GETTING NON-EXISTENT
     def test_getting_non_existent_user(self):
         # test for an arbitrary user
-        response = self.app.get('/users/55f0cbb4236f44b7f0e3cb23', headers=self.auth,)
+        get_user_response = self.app.get('/users/55f0cbb4236f44b7f0e3cb23', headers=self.auth)
         # run assertions to test status code
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(get_user_response.status_code, 404)
 
-# =====================================================================================================================
+# «««««««««««««««««««««««««««««««««««««««««««««««««««««««»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
                                            # TRIP TESTS
-# =====================================================================================================================
+# «««««««««««««««««««««««««««««««««««««««««««««««««««««««»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 
     # POSTING
     def test_posting_trip(self):
-        response = self.app.post('/trips/',
-                                data=json.dumps(
-                                    dict(
-                                        name="A trip",
-                                        waypoints=[]
-                                        )),
-                                headers=self.auth,
-                                content_type='application/json')
+        self.post_trip_response = self.app.post('/trips/',
+                                            data=json.dumps(
+                                                dict(
+                                                    name="A trip",
+                                                    waypoints=[],
+                                                    user=self.username
+                                                )),
+                                            headers=self.auth,
+                                            content_type='application/json')
 
-        responseJSON = json.loads(response.data.decode())
+        responseJSON = json.loads(self.post_trip_response.data.decode())
 
-        self.assertEqual(response.status_code, 200)
-        assert 'application/json' in response.content_type
+        self.assertEqual(self.post_trip_response.status_code, 200)
+        assert 'application/json' in self.post_trip_response.content_type
         assert 'A trip' in responseJSON["name"]
 
     # UPDATING
     def test_updating_trip(self):
-        response = self.app.post("/trips/",
-                                data=json.dumps(
-                                    dict(
-                                        name="A trip",
-                                        waypoints=[]
-                                        )),
-                                headers=self.auth,
-                                content_type="application/json")
+        # import pdb; pdb.set_trace()
 
-        postedResponseJSON = json.loads(response.data.decode())
+        postedResponseJSON = json.loads(self.post_trip_response.data.decode())
         postedObjectID = postedResponseJSON["_id"]
 
-        response = self.app.put("/trips/" + postedObjectID, headers=self.auth)
-        self.assertEqual(response.status_code, 200)
+        put_trip_response = self.app.put("/trips/" + postedObjectID,
+                                        data=json.dumps(
+                                            dict(
+                                                name="A different trip",
+                                                waipoints=["new waipoint"],
+                                                user=self.username
+                                            )),
+                                        headers=self.auth,
+                                        content_type="application/json")
+
+        self.assertEqual(put_trip_response.status_code, 200)
 
     # GETTING
     def test_getting_trip(self):
-        response = self.app.post('/trips/',
-                                data=json.dumps(
-                                    dict(
-                                        name="Another trip",
-                                        waypoints=[]
-                                        )),
-                                headers=self.auth,
-                                content_type='application/json')
-
-        postResponseJSON = json.loads(response.data.decode())
+        postResponseJSON = json.loads(self.post_trip_response.data.decode())
         postedObjectID = postResponseJSON["_id"]
 
-        response = self.app.get('/trips/' + postedObjectID, headers=self.auth)
-        responseJSON = json.loads(response.data.decode())
+        get_trip_response = self.app.get('/trips/' + postedObjectID, headers=self.auth)
+        responseJSON = json.loads(get_trip_response.data.decode())
 
-        self.assertEqual(response.status_code, 200)
-        assert 'Another trip' in responseJSON["name"]
+        self.assertEqual(get_trip_response.status_code, 200)
+        assert 'A trip' in responseJSON["name"]
 
     # DELETING
     def test_deleting_trip(self):
-        response = self.app.post('/trips/',
-                                data=json.dumps(
-                                    dict(
-                                        name="Another trip",
-                                        waypoints=[]
-                                        )),
-                                headers=self.auth,
-                                content_type='application/json')
-
-        postResponseJSON = json.loads(response.data.decode())
+        postResponseJSON = json.loads(self.post_trip_response.data.decode())
         postedObjectID = postResponseJSON["_id"]
 
-        response = self.app.delete('/trips/' + postedObjectID, headers=self.auth)
+        delete_trip_response = self.app.delete('/trips/' + postedObjectID, headers=self.auth)
 
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(delete_trip_response.status_code, 200)
 
     # GETTING NON-EXISTENT
     def test_getting_non_existent_trip(self):
-        response = self.app.get('/trips/55f0cbb4236f44b7f0e3cb23', headers=self.auth)
-        self.assertEqual(response.status_code, 404)
+        get_trip_response = self.app.get('/trips/55f0cbb4236f44b7f0e3cb23', headers=self.auth)
+        self.assertEqual(get_trip_response.status_code, 404)
 
 
 if __name__ == '__main__':

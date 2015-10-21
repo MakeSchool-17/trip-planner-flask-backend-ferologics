@@ -13,21 +13,24 @@ app.db = mongo.develop_database
 api = Api(app)
 app.bcrypt_rounds = 8
 
+
 def check_auth(username, password):
 
     user_collection = app.db.users
-    print(user_collection.list)
-    print(username, password)
 
-    # look for the username in the database
+    # look for the password in the database
+    user = user_collection.find_one({"username": username})
+    if user is None:
+        return False
 
-        # user = user_collection.find_one({"_id": ObjectId(user_id)})
+    pwd = user["password"]
+    # encode password for camparision
+    encoded_password = pwd.encode("utf-8")
 
-    # hash auth password
-
-    # check matching passwords
-
-    return username == "admin" and password == "secret"
+    usernames_match = username == user["username"]
+    passwords_match = bcrypt.hashpw(password.encode("utf-8"), encoded_password) == encoded_password
+    # return if matching usernames and passwords
+    return  usernames_match and passwords_match
 
 def requires_auth(f):
     @wraps(f)
@@ -44,29 +47,26 @@ def requires_auth(f):
 # Implement REST Resource
 class Users(Resource):
 
-    # @requires_auth
     def post(self):
         # new user JSON request in form [username:str, password:str]
         new_user = request.json
         user_collection = app.db.users
 
-        # encrypt the password
+        # encode the password
         password = new_user["password"].encode("utf-8")
+
         # hash pw
         hashed = bcrypt.hashpw(password, bcrypt.gensalt(app.bcrypt_rounds))
-        # check for validity
-        if bcrypt.hashpw(password, hashed) == hashed:
-            # store along with the user name
-            result = user_collection.insert_one(new_user)
-        else:
-            # handle error
-            print("Not matching")
+        dec_hashed = hashed.decode("utf-8")  # without the b'
 
-        user = self.get(result.inserted_id)
+        # store along with the user name
+        result = user_collection.insert_one({"username": new_user["username"], "password": dec_hashed})
+
+        user = user_collection.find_one({"_id": ObjectId(result.inserted_id)})
         return user
 
     @requires_auth
-    def get(self, user_id):
+    def get(self, user_id): # TODO - update this to not use the user ID
         user_collection = app.db.users
         user = user_collection.find_one({"_id": ObjectId(user_id)})
 
@@ -78,11 +78,11 @@ class Users(Resource):
             return user
 
     @requires_auth
-    def put(self, user_id):
+    def put(self, user_id): # TODO - update this to not use the user ID
         new_data = request.json
 
         user_collection = app.db.users
-        result = user_collection.update_one({"_id": ObjectId(user_id)}, {"$set": {"data": new_data}})
+        result = user_collection.update_one({"_id": ObjectId(user_id)}, {"$set": new_data})
 
         response = jsonify(data=[])
         if result.modified_count == 0:
@@ -114,7 +114,7 @@ class Trips(Resource):
             return trip
 
     @requires_auth
-    def get(self, trip_id):
+    def get(self, trip_id): # TODO - update this to not use the ID
         trip_collection = app.db.trips
         trip = trip_collection.find_one({"_id": ObjectId(trip_id)})
 
@@ -126,7 +126,7 @@ class Trips(Resource):
             return trip
 
     @requires_auth
-    def delete(self, trip_id):
+    def delete(self, trip_id): # TODO - update this to not use the ID
         trip_collection = app.db.trips
         result = trip_collection.delete_one({"_id": ObjectId(trip_id)})
 
@@ -139,11 +139,15 @@ class Trips(Resource):
             return response
 
     @requires_auth
-    def put(self, trip_id):
+    def put(self, trip_id): # TODO - update this to not use the ID
+
+        # import pdb; pdb.set_trace()
+
         new_data = request.json
 
         trip_collection = app.db.trips
-        result = trip_collection.update_one({"_id": ObjectId(trip_id)}, {"$set": {"data": new_data}})
+
+        result = trip_collection.update_one({"_id": ObjectId(trip_id)}, {"$set": new_data})
 
         response = jsonify(data=[])
         if result.modified_count == 0:
