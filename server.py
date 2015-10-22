@@ -44,7 +44,9 @@ def requires_auth(f):
         return f(*args, **kwargs)
     return decorated
 
-# Implement REST Resource
+# «««««««««««««««««««««««««««««««««««««««««««««««««««««««»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+                                                # USER
+# «««««««««««««««««««««««««««««««««««««««««««««««««««««««»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 class Users(Resource):
 
     def post(self):
@@ -95,7 +97,9 @@ class Users(Resource):
 # Add REST resource to API
 api.add_resource(Users, '/users/', '/users/<string:user_id>')
 
-# Implement REST Resource
+# «««««««««««««««««««««««««««««««««««««««««««««««««««««««»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
+                                                # TRIP
+# «««««««««««««««««««««««««««««««««««««««««««««««««««««««»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»»
 class Trips(Resource):
 
     @requires_auth
@@ -114,13 +118,17 @@ class Trips(Resource):
             return trip
 
     @requires_auth
-    def get(self, trip_id): # TODO - update this to not use the ID
+    def get(self, trip_id):
         trip_collection = app.db.trips
         trip = trip_collection.find_one({"_id": ObjectId(trip_id)})
 
+        response = jsonify(data=[])
         if trip is None:
-            response = jsonify(data=[])
             response.status_code = 404
+            return response
+
+        elif trip["user"] != request.authorization["username"]:
+            response.status_code = 401
             return response
         else:
             return trip
@@ -141,20 +149,22 @@ class Trips(Resource):
     @requires_auth
     def put(self, trip_id): # TODO - update this to not use the ID
 
-        # import pdb; pdb.set_trace()
-
+        # setup
         new_data = request.json
-
         trip_collection = app.db.trips
-
-        result = trip_collection.update_one({"_id": ObjectId(trip_id)}, {"$set": new_data})
-
         response = jsonify(data=[])
-        if result.modified_count == 0:
-            response.status_code = 404
+
+        # escape if the trip to be modified does not belong to the user
+        trip_to_modify = trip_collection.find_one( {"_id": ObjectId( trip_id )} )
+
+        if trip_to_modify["user"] != request.authorization["username"]:
+            response.status_code = 401
             return response
-        else:
-            response.status_code = 200
+        else:  # otherwise update the trip
+            update_trip_result = trip_collection.update_one( {"_id": ObjectId( trip_id )}, {"$set": new_data} )
+
+            response.status_code = 404 if ( update_trip_result.modified_count == 0 ) else 200
+
             return response
 
 # Add REST resource to API
