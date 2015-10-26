@@ -164,6 +164,8 @@ class FlaskrTestCase(unittest.TestCase):
         assert 'A trip' in responseJSON["name"]
 
     # DELETING
+    # [Ben-G] Note: A more extensive test would try to fetch the deleted trip as part of 
+    # a second request and validate that the endpoint returns a 404
     def test_deleting_trip(self):
         postResponseJSON = json.loads(self.post_trip_response.data.decode())
         postedObjectID = postResponseJSON["_id"]
@@ -177,6 +179,8 @@ class FlaskrTestCase(unittest.TestCase):
         get_trip_response = self.app.get('/trips/55f0cbb4236f44b7f0e3cb23', headers=self.auth)
         self.assertEqual(get_trip_response.status_code, 404)
 
+    # [Ben-G] Note: Another test could include creating trips for different users and veryfing that 
+    # you only retrieve the trips for the user that's currently logged in
 
 if __name__ == '__main__':
     unittest.main()
